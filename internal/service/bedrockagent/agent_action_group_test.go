@@ -288,6 +288,46 @@ func TestAccBedrockAgentAgentActionGroup_FunctionSchema_memberFunctions_requireC
 	})
 }
 
+func TestAccBedrockAgentAgentActionGroup_FunctionSchema_memberFunctions_requireConfirmationDefault(t *testing.T) {
+	ctx := acctest.Context(t)
+	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
+	resourceName := "aws_bedrockagent_agent_action_group.test"
+	var v awstypes.AgentActionGroup
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(ctx, t); acctest.PreCheckPartitionHasService(t, names.BedrockEndpointID) },
+		ErrorCheck:               acctest.ErrorCheck(t, names.BedrockAgentServiceID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckAgentActionGroupDestroy(ctx),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAgentActionGroupConfig_FunctionSchema_memberFunctions_requireConfirmationDefault(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAgentActionGroupExists(ctx, resourceName, &v),
+					resource.TestCheckResourceAttr(resourceName, "action_group_name", rName),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.0.functions.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.0.functions.0.name", "sayHello"),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.0.functions.0.description", "Says Hello"),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.0.functions.0.require_confirmation", "DISABLED"),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.0.functions.0.parameters.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.0.functions.0.parameters.0.map_block_key", names.AttrMessage),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.0.functions.0.parameters.0.type", "string"),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.0.functions.0.parameters.0.description", "The Hello message"),
+					resource.TestCheckResourceAttr(resourceName, "function_schema.0.member_functions.0.functions.0.parameters.0.required", acctest.CtTrue),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"skip_resource_in_use_check"},
+			},
+		},
+	})
+}
+
 func TestAccBedrockAgentAgentActionGroup_ActionGroupExecutor_customControl(t *testing.T) {
 	ctx := acctest.Context(t)
 	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
@@ -505,6 +545,37 @@ resource "aws_bedrockagent_agent_action_group" "test" {
         name                 = "sayHello"
         description          = "Says Hello"
         require_confirmation = "ENABLED"
+        parameters {
+          map_block_key = "message"
+          type          = "string"
+          description   = "The Hello message"
+          required      = true
+        }
+      }
+    }
+  }
+}
+`, rName))
+}
+
+func testAccAgentActionGroupConfig_FunctionSchema_memberFunctions_requireConfirmationDefault(rName string) string {
+	return acctest.ConfigCompose(testAccAgentConfig_basic(rName, "anthropic.claude-v2", "basic claude"),
+		testAccAgentActionGroupConfig_lambda(rName),
+		fmt.Sprintf(`
+resource "aws_bedrockagent_agent_action_group" "test" {
+  action_group_name          = %[1]q
+  agent_id                   = aws_bedrockagent_agent.test.agent_id
+  agent_version              = "DRAFT"
+  skip_resource_in_use_check = true
+  action_group_executor {
+    lambda = aws_lambda_function.test_lambda.arn
+  }
+  function_schema {
+    member_functions {
+      functions {
+        name        = "sayHello"
+        description = "Says Hello"
+        # Note: require_confirmation is not specified to test default behavior
         parameters {
           map_block_key = "message"
           type          = "string"
