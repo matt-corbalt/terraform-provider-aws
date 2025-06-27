@@ -191,6 +191,10 @@ func (r *agentActionGroupResource) Schema(ctx context.Context, request resource.
 														stringvalidator.RegexMatches(regexache.MustCompile(`^([0-9a-zA-Z][_-]?){1,100}$`), "valid characters are a-z, A-Z, 0-9, _ (underscore) and - (hyphen). The name can have up to 100 characters"),
 													},
 												},
+												"require_confirmation": schema.StringAttribute{
+													CustomType: fwtypes.StringEnumType[awstypes.RequireConfirmation](),
+													Optional:   true,
+												},
 											},
 											Blocks: map[string]schema.Block{
 												names.AttrParameters: schema.SetNestedBlock{
@@ -634,9 +638,10 @@ type memberFunctionsModel struct {
 }
 
 type functionModel struct {
-	Description types.String                                         `tfsdk:"description"`
-	Name        types.String                                         `tfsdk:"name"`
-	Parameters  fwtypes.SetNestedObjectValueOf[parameterDetailModel] `tfsdk:"parameters"`
+	Description         types.String                                         `tfsdk:"description"`
+	Name                types.String                                         `tfsdk:"name"`
+	Parameters          fwtypes.SetNestedObjectValueOf[parameterDetailModel] `tfsdk:"parameters"`
+	RequireConfirmation fwtypes.StringEnum[awstypes.RequireConfirmation]     `tfsdk:"require_confirmation"`
 }
 
 type parameterDetailModel struct {
