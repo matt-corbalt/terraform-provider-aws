@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -190,6 +191,12 @@ func (r *agentActionGroupResource) Schema(ctx context.Context, request resource.
 													Validators: []validator.String{
 														stringvalidator.RegexMatches(regexache.MustCompile(`^([0-9a-zA-Z][_-]?){1,100}$`), "valid characters are a-z, A-Z, 0-9, _ (underscore) and - (hyphen). The name can have up to 100 characters"),
 													},
+												},
+												"require_confirmation": schema.StringAttribute{
+													CustomType: fwtypes.StringEnumType[awstypes.RequireConfirmation](),
+													Optional:   true,
+													Computed:   true,
+													Default:    stringdefault.StaticString("DISABLED"),
 												},
 											},
 											Blocks: map[string]schema.Block{
@@ -634,9 +641,10 @@ type memberFunctionsModel struct {
 }
 
 type functionModel struct {
-	Description types.String                                         `tfsdk:"description"`
-	Name        types.String                                         `tfsdk:"name"`
-	Parameters  fwtypes.SetNestedObjectValueOf[parameterDetailModel] `tfsdk:"parameters"`
+	Description         types.String                                         `tfsdk:"description"`
+	Name                types.String                                         `tfsdk:"name"`
+	Parameters          fwtypes.SetNestedObjectValueOf[parameterDetailModel] `tfsdk:"parameters"`
+	RequireConfirmation fwtypes.StringEnum[awstypes.RequireConfirmation]     `tfsdk:"require_confirmation"`
 }
 
 type parameterDetailModel struct {
